@@ -8,7 +8,7 @@ export class DBLayerStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        const vpcId = cdk.Fn.importValue('PBLVocIdOutput');
+        const vpcId = cdk.Fn.importValue('PBLVpcIdOutput');
         const privateSubnets = cdk.Fn.importValue('PBLPublicVpcOutput').split(',');
         const publicSubnets = cdk.Fn.importValue('PBLPrivateVpcOutput').split(',');
         const azs = cdk.Fn.importValue('PBLSubnetAZS').split(',')
