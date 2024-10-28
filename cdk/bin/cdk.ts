@@ -9,7 +9,7 @@ const app = new cdk.App();
 
 const infraLayer = new InfraLayerStack(app, 'InfraLayer', {});
 const DBLayer = new DBLayerStack(app, 'DBLayer', {});
-// const wasLayer = new WASLayerStack(app, 'WASLayer', {});
+const wasLayer = new WASLayerStack(app, 'WASLayer', {});
 
 DBLayer.addDependency(infraLayer)
-// wasLayer.addDenpendency(DBLayer)
+wasLayer.addDependency(DBLayer)
