@@ -32,12 +32,8 @@ echo "export DB_PASSWD=$${DB_PASSWD}" >> /home/ubuntu/.bashrc
 # mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "CREATE DATABASE COFFEE;"
 mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "USE COFFEE; CREATE TABLE IF NOT EXISTS suppliers(id INT NOT NULL AUTO_INCREMENT,name VARCHAR(255) NOT NULL,address VARCHAR(255) NOT NULL,city VARCHAR(255) NOT NULL,state VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,phone VARCHAR(100) NOT NULL,PRIMARY KEY ( id ));"
 
-# sed the config file
-sed -i "s|REPLACE-DB-HOST|$${DB_EP}|g" /home/ubuntu/cs-cloud-2024/monolithic_code/app/config/config.js
-sleep 2
-
-#start the app
-node index.js &
+# start app with environment variables
+APP_DB_HOST=$${DB_EP} APP_DB_USER=$${DB_MASTER_NAME} APP_DB_PASSWORD=$${DB_PASSWD} APP_DB_NAME=${db_name} bash -c 'node index.js &'
 
 # ensure app starts at boot for all lab sessions
 cat <<EOF > /etc/rc.local
