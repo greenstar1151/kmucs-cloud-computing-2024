@@ -36,6 +36,10 @@ resource "aws_launch_template" "web_lt" {
     db_master_username = var.db_username,
     db_secret_arn      = aws_rds_cluster.aurora_cluster.master_user_secret[0].secret_arn,
   }))
+
+  depends_on = [
+    aws_rds_cluster.aurora_cluster # EC2의 user data에서 RDS의 endpoint를 사용하기 때문에 RDS가 먼저 생성되어야 함
+  ]
 }
 
 resource "aws_autoscaling_group" "web_asg" {
