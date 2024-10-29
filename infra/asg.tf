@@ -34,7 +34,7 @@ resource "aws_launch_template" "web_lt" {
   user_data = base64encode(templatefile("${path.module}/templates/user_data.sh.tftpl", {
     db_endpoint        = aws_rds_cluster.aurora_cluster.endpoint,
     db_master_username = var.db_username,
-    db_secret_arn      = aws_secretsmanager_secret.db_secret.arn,
+    db_secret_arn      = aws_rds_cluster.aurora_cluster.master_user_secret[0].secret_arn,
   }))
 }
 
