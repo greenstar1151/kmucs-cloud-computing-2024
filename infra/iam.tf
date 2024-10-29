@@ -20,29 +20,6 @@
 #   }
 # }
 
-# resource "aws_iam_policy" "ec2_secretsmanager_policy" {
-#   name        = "${var.resource_name_prefix}-secretsmanager-policy"
-#   description = "Allow EC2 instances to access AWS Secrets Manager"
-
-#   policy = data.aws_iam_policy_document.ec2_secretsmanager_policy.json
-# }
-
-# data "aws_iam_policy_document" "ec2_secretsmanager_policy" {
-#   statement {
-#     effect = "Allow"
-
-#     actions = [
-#       "secretsmanager:GetSecretValue",
-#       "kms:Decrypt"
-#     ]
-
-#     resources = [
-#       aws_secretsmanager_secret.db_secret.arn,
-#       "${aws_secretsmanager_secret.db_secret.arn}*"
-#     ]
-#   }
-# }
-
 # resource "aws_iam_instance_profile" "ec2_instance_profile" {
 #   name = "${var.resource_name_prefix}-ec2-instance-profile"
 #   role = aws_iam_role.ec2_role.name
