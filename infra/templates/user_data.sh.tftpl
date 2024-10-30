@@ -1,0 +1,45 @@
+#!/bin/bash -xe
+
+apt update -y
+apt install nodejs unzip wget npm mysql-client awscli tree nmap git jq -y
+
+cd /home/ubuntu
+# Repo override
+git clone -b release https://github.com/greenstar1151/kmucs-cloud-computing-2024.git cs-cloud-2024
+cd /home/ubuntu/cs-cloud-2024/
+chown ubuntu -R monolithic_code/
+cd monolithic_code
+npm install
+
+
+# filled by Terraform
+export DB_EP="${db_endpoint}"
+export DB_MASTER_NAME="${db_master_username}"
+
+# IMDS에서 AWS Region 가져오기
+export AWS_REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+
+# AWS Secrets Manager에서 DB 비밀번호 가져오기
+export DB_PASSWD=$(aws secretsmanager get-secret-value --region $${AWS_REGION} --secret-id '${db_secret_arn}' --query 'SecretString' --output text | jq -r .password)
+
+
+echo "export DB_EP=$${DB_EP}" >> /home/ubuntu/.bashrc
+echo "export DB_MASTER_NAME=$${DB_MASTER_NAME}" >> /home/ubuntu/.bashrc
+echo "export DB_PASSWD=$${DB_PASSWD}" >> /home/ubuntu/.bashrc
+
+# RDS에서 database, user를 관리하므로 생략
+# mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "CREATE USER 'nodeapp' IDENTIFIED WITH mysql_native_password BY 'coffee';"
+# mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "GRANT ALL PRIVILEGES ON *.* TO 'nodeapp'@'%' WITH GRANT OPTION;"
+# mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "CREATE DATABASE COFFEE;"
+mysql -u "$${DB_MASTER_NAME}" -p"$${DB_PASSWD}" -h "$${DB_EP}" -P 3306 -e "USE COFFEE; CREATE TABLE IF NOT EXISTS suppliers(id INT NOT NULL AUTO_INCREMENT,name VARCHAR(255) NOT NULL,address VARCHAR(255) NOT NULL,city VARCHAR(255) NOT NULL,state VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,phone VARCHAR(100) NOT NULL,PRIMARY KEY ( id ));"
+
+# start app with environment variables
+APP_DB_HOST=$${DB_EP} APP_DB_USER=$${DB_MASTER_NAME} APP_DB_PASSWORD=$${DB_PASSWD} APP_DB_NAME=${db_name} bash -c 'node index.js &'
+
+# ensure app starts at boot for all lab sessions
+cat <<EOF > /etc/rc.local
+#!/bin/bash
+cd /home/ubuntu/cs-cloud-2024/monolithic_code/
+sudo node index.js
+EOF
+chmod +x /etc/rc.local

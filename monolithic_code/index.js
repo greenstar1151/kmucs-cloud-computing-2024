@@ -19,19 +19,34 @@ app.set("views", __dirname + "/views");
 app.use(express.static("public"));
 app.use(favicon(__dirname + "/public/img/favicon.ico"));
 
-// 메타데이터 토큰을 가져오는 함수
+const CACHE_EXPIRY = 21600 * 1000; // 6 hours in milliseconds
+const metadataCache = {};
+
 async function fetchToken() {
+	if (metadataCache.token && Date.now() < metadataCache.tokenExpiry) {
+		return metadataCache.token;
+	}
+
 	const response = await fetch("http://169.254.169.254/latest/api/token", {
 		method: "PUT",
 		headers: {
 			"X-aws-ec2-metadata-token-ttl-seconds": "21600",
 		},
 	});
-	return response.text();
+
+	const token = await response.text();
+	metadataCache.token = token;
+	metadataCache.tokenExpiry = Date.now() + CACHE_EXPIRY;
+	return token;
 }
 
-// 주어진 메타데이터 경로에서 데이터를 가져오는 함수
+// 주어진 메타데이터 경로에서 데이터를 가져오는 함수 (캐시 적용)
 async function fetchMetadata(path, token) {
+	// Check if metadata is cached and still valid
+	if (metadataCache[path] && Date.now() < metadataCache[path].expiry) {
+		return metadataCache[path].value;
+	}
+
 	try {
 		const response = await fetch(`http://169.254.169.254/latest/meta-data/${path}`, {
 			headers: {
@@ -43,7 +58,10 @@ async function fetchMetadata(path, token) {
 			throw new Error(`Failed to fetch metadata: ${response.statusText}`);
 		}
 
-		return await response.text();
+		const data = await response.text();
+		// Cache metadata with expiry
+		metadataCache[path] = { value: data, expiry: Date.now() + CACHE_EXPIRY };
+		return data;
 	} catch (error) {
 		console.error("Error fetching metadata:", error.message);
 		throw error;
@@ -51,6 +69,10 @@ async function fetchMetadata(path, token) {
 }
 
 function fetchIpInfo() {
+	if (metadataCache.ipInfo && Date.now() < metadataCache.ipInfo.expiry) {
+		return Promise.resolve(metadataCache.ipInfo.value);
+	}
+
 	return new Promise((resolve, reject) => {
 		const options = {
 			path: "/json/",
@@ -76,6 +98,9 @@ function fetchIpInfo() {
 							lat_long: `${loc.latitude}, ${loc.longitude}`,
 							timezone: loc.timezone,
 						};
+
+						// Cache the IP information with expiry
+						metadataCache.ipInfo = { value: result, expiry: Date.now() + CACHE_EXPIRY };
 						resolve(result);
 					} catch (error) {
 						reject(error);
@@ -87,7 +112,6 @@ function fetchIpInfo() {
 			});
 	});
 }
-
 // list all the suppliers
 app.get("/", async (req, res) => {
 	try {
