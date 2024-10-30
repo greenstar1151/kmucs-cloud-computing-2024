@@ -25,7 +25,7 @@ resource "aws_rds_cluster" "aurora_cluster" {
 resource "aws_rds_cluster_instance" "aurora_instance" {
   identifier          = "${var.resource_name_prefix}-cluster-instance-1"
   cluster_identifier  = aws_rds_cluster.aurora_cluster.id
-  instance_class      = "db.t4g.medium"
+  instance_class      = var.db_instance_type
   engine              = aws_rds_cluster.aurora_cluster.engine
   engine_version      = aws_rds_cluster.aurora_cluster.engine_version
   publicly_accessible = false

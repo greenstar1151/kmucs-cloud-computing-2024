@@ -33,3 +33,9 @@ variable "instance_type" {
   type        = string
   default     = "t3.nano"
 }
+
+variable "db_instance_type" {
+  description = "RDS instance type"
+  type        = string
+  default     = "db.t4g.medium"
+}
