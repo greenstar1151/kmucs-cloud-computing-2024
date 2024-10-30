@@ -45,9 +45,9 @@ resource "aws_launch_template" "web_lt" {
 
 resource "aws_autoscaling_group" "web_asg" {
   name                = "${var.resource_name_prefix}-asg"
-  max_size            = 2
-  min_size            = 1
-  desired_capacity    = 1
+  max_size            = 8
+  min_size            = 2
+  desired_capacity    = 2
   vpc_zone_identifier = module.vpc.private_subnets
 
   launch_template {
