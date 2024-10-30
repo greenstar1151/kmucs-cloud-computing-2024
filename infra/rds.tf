@@ -7,7 +7,6 @@ resource "aws_db_subnet_group" "db_subnet_group" {
   }
 }
 
-
 resource "aws_rds_cluster" "aurora_cluster" {
   cluster_identifier          = "${var.resource_name_prefix}-cluster"
   engine                      = "aurora-mysql"
@@ -20,13 +19,21 @@ resource "aws_rds_cluster" "aurora_cluster" {
   db_subnet_group_name        = aws_db_subnet_group.db_subnet_group.name
   deletion_protection         = false
   skip_final_snapshot         = true
+
+  # Multi-AZ
+  allocated_storage         = 256
+  db_cluster_instance_class = "db.r6gd.large"
+  iops                      = 20
+  storage_type              = "io1"
 }
 
 resource "aws_rds_cluster_instance" "aurora_instance" {
-  identifier          = "${var.resource_name_prefix}-cluster-instance-1"
-  cluster_identifier  = aws_rds_cluster.aurora_cluster.id
-  instance_class      = "db.t4g.medium"
-  engine              = aws_rds_cluster.aurora_cluster.engine
-  engine_version      = aws_rds_cluster.aurora_cluster.engine_version
-  publicly_accessible = false
+  count                = 2  # AZ: 2개
+  availability_zone    = element(data.aws_availability_zones.available.names, count.index) # 데이터 리소스 이름 수정
+  identifier           = "${var.resource_name_prefix}-cluster-instance-${count.index + 1}"
+  cluster_identifier   = aws_rds_cluster.aurora_cluster.id
+  instance_class       = "db.t4g.medium"
+  engine               = aws_rds_cluster.aurora_cluster.engine
+  engine_version       = aws_rds_cluster.aurora_cluster.engine_version
+  publicly_accessible   = false
 }
