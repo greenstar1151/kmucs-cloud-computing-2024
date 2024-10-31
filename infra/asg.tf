@@ -73,21 +73,29 @@ resource "aws_autoscaling_group" "web_asg" {
 
 # asg policy
 resource "aws_autoscaling_policy" "scale_out" {
-  name                   = "${var.resource_name_prefix}-asg-scale-out"
-  scaling_adjustment     = 1
-  adjustment_type        = "ChangeInCapacity"
-  autoscaling_group_name = aws_autoscaling_group.web_asg.name
-
+  name                      = "${var.resource_name_prefix}-asg-scale-out"
+  autoscaling_group_name    = aws_autoscaling_group.web_asg.name
+  adjustment_type           = "ChangeInCapacity"
+  policy_type               = "StepScaling"
   estimated_instance_warmup = 60
+
+  step_adjustment {
+    scaling_adjustment          = 1
+    metric_interval_lower_bound = 0
+  }
 }
 
 resource "aws_autoscaling_policy" "scale_in" {
-  name                   = "${var.resource_name_prefix}-asg-scale-in"
-  scaling_adjustment     = -1
-  adjustment_type        = "ChangeInCapacity"
-  autoscaling_group_name = aws_autoscaling_group.web_asg.name
-
+  name                      = "${var.resource_name_prefix}-asg-scale-in"
+  autoscaling_group_name    = aws_autoscaling_group.web_asg.name
+  adjustment_type           = "ChangeInCapacity"
+  policy_type               = "StepScaling"
   estimated_instance_warmup = 60
+
+  step_adjustment {
+    scaling_adjustment          = -1
+    metric_interval_upper_bound = 0
+  }
 }
 
 # cloud watch
