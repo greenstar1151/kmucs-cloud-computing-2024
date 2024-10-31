@@ -57,6 +57,13 @@ resource "aws_autoscaling_group" "web_asg" {
 
   target_group_arns = [aws_lb_target_group.web_tg.arn]
 
+  instance_maintenance_policy {
+    min_healthy_percentage = 100
+    max_healthy_percentage = 200
+  }
+
+  termination_policies = ["OldestLaunchTemplate", "OldestInstance", "Default"]
+
   tag {
     key                 = "Name"
     value               = "${var.resource_name_prefix}-web-instance"
@@ -70,6 +77,8 @@ resource "aws_autoscaling_policy" "scale_out" {
   scaling_adjustment     = 1
   adjustment_type        = "ChangeInCapacity"
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
+
+  estimated_instance_warmup = 60
 }
 
 resource "aws_autoscaling_policy" "scale_in" {
@@ -77,6 +86,8 @@ resource "aws_autoscaling_policy" "scale_in" {
   scaling_adjustment     = -1  
   adjustment_type        = "ChangeInCapacity"
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
+
+  estimated_instance_warmup = 60
 }
 
 # cloud watch
