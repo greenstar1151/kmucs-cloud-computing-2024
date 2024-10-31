@@ -65,15 +65,15 @@ resource "aws_autoscaling_group" "web_asg" {
 }
 
 # asg policy
-resource "aws_autoscaling_policy" "scale_up" {
-  name                   = "${var.resource_name_prefix}-asg-scale_up"
+resource "aws_autoscaling_policy" "scale_out" {
+  name                   = "${var.resource_name_prefix}-asg-scale-out"
   scaling_adjustment     = 1
   adjustment_type        = "ChangeInCapacity"
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
 }
 
-resource "aws_autoscaling_policy" "scale_down" {
-  name                   = "${var.resource_name_prefix}-asg-scale_down"
+resource "aws_autoscaling_policy" "scale_in" {
+  name                   = "${var.resource_name_prefix}-asg-scale-in"
   scaling_adjustment     = -1  
   adjustment_type        = "ChangeInCapacity"
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
@@ -89,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   period               = "60"
   statistic            = "Average"
   threshold            = "70"       # CPU 사용률 70% 이상
-  alarm_actions        = [aws_autoscaling_policy.scale_up.arn]
+  alarm_actions        = [aws_autoscaling_policy.scale_out.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
   }
@@ -104,7 +104,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   period               = "60"
   statistic            = "Average"
   threshold            = "30"       # CPU 사용률 30% 이하
-  alarm_actions        = [aws_autoscaling_policy.scale_down.arn]
+  alarm_actions        = [aws_autoscaling_policy.scale_in.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
   }
