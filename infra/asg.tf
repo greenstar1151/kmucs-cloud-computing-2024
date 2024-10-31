@@ -45,7 +45,7 @@ resource "aws_launch_template" "web_lt" {
 
 resource "aws_autoscaling_group" "web_asg" {
   name                = "${var.resource_name_prefix}-asg"
-  max_size            = 4
+  max_size            = 8
   min_size            = 2
   desired_capacity    = 2
   vpc_zone_identifier = module.vpc.private_subnets
@@ -57,6 +57,13 @@ resource "aws_autoscaling_group" "web_asg" {
 
   target_group_arns = [aws_lb_target_group.web_tg.arn]
 
+  instance_maintenance_policy {
+    min_healthy_percentage = 100
+    max_healthy_percentage = 200
+  }
+
+  termination_policies = ["OldestLaunchTemplate", "OldestInstance", "Default"]
+
   tag {
     key                 = "Name"
     value               = "${var.resource_name_prefix}-web-instance"
@@ -65,46 +72,58 @@ resource "aws_autoscaling_group" "web_asg" {
 }
 
 # asg policy
-resource "aws_autoscaling_policy" "scale_up" {
-  name                   = "${var.resource_name_prefix}-asg-scale_up"
-  scaling_adjustment     = 1
-  adjustment_type        = "ChangeInCapacity"
-  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+resource "aws_autoscaling_policy" "scale_out" {
+  name                      = "${var.resource_name_prefix}-asg-scale-out"
+  autoscaling_group_name    = aws_autoscaling_group.web_asg.name
+  adjustment_type           = "ChangeInCapacity"
+  policy_type               = "StepScaling"
+  estimated_instance_warmup = 60
+
+  step_adjustment {
+    scaling_adjustment          = 1
+    metric_interval_lower_bound = 0
+  }
 }
 
-resource "aws_autoscaling_policy" "scale_down" {
-  name                   = "${var.resource_name_prefix}-asg-scale_down"
-  scaling_adjustment     = -1  
-  adjustment_type        = "ChangeInCapacity"
-  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+resource "aws_autoscaling_policy" "scale_in" {
+  name                      = "${var.resource_name_prefix}-asg-scale-in"
+  autoscaling_group_name    = aws_autoscaling_group.web_asg.name
+  adjustment_type           = "ChangeInCapacity"
+  policy_type               = "StepScaling"
+  estimated_instance_warmup = 60
+
+  step_adjustment {
+    scaling_adjustment          = -1
+    metric_interval_upper_bound = 0
+  }
 }
 
 # cloud watch
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name           = "${var.resource_name_prefix}-cloud_watch-high"
-  comparison_operator  = "GreaterThanThreshold"
-  evaluation_periods   = "2"
-  metric_name          = "CPUUtilization"
-  namespace            = "AWS/EC2"
-  period               = "60"
-  statistic            = "Average"
-  threshold            = "70"       # CPU 사용률 70% 이상
-  alarm_actions        = [aws_autoscaling_policy.scale_up.arn]
+  alarm_name          = "${var.resource_name_prefix}-cloud_watch-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "70" # CPU 사용률 70% 이상
+  alarm_actions       = [aws_autoscaling_policy.scale_out.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
   }
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-  alarm_name           = "${var.resource_name_prefix}-cloud_watch-low"
-  comparison_operator  = "LessThanThreshold"
-  evaluation_periods   = "2"
-  metric_name          = "CPUUtilization"
-  namespace            = "AWS/EC2"
-  period               = "60"
-  statistic            = "Average"
-  threshold            = "30"       # CPU 사용률 30% 이하
-  alarm_actions        = [aws_autoscaling_policy.scale_down.arn]
+  alarm_name          = "${var.resource_name_prefix}-cloud_watch-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "30" # CPU 사용률 30% 이하
+  alarm_actions       = [aws_autoscaling_policy.scale_in.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
   }

@@ -15,7 +15,7 @@ resource "aws_lb_target_group" "web_tg" {
   deregistration_delay = 30
 
   health_check {
-    path                = "/"
+    path                = "/health"
     protocol            = "HTTP"
     port                = "traffic-port"
     healthy_threshold   = 2
