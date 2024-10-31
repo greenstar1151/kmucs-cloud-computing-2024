@@ -16,8 +16,8 @@ resource "aws_rds_cluster" "aurora_cluster" {
   port                        = 3306
   vpc_security_group_ids      = [aws_security_group.db_sg.id]
   db_subnet_group_name        = aws_db_subnet_group.db_subnet_group.name
-  skip_final_snapshot         = false
-  final_snapshot_identifier   = "${var.resource_name_prefix}-final-snapshot"
+  deletion_protection         = false
+  skip_final_snapshot         = true
 
   # Multi-AZ configuration
   availability_zones      = data.aws_availability_zones.available.names
