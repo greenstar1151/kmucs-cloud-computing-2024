@@ -63,3 +63,49 @@ resource "aws_autoscaling_group" "web_asg" {
     propagate_at_launch = true
   }
 }
+
+# asg policy
+resource "aws_autoscaling_policy" "scale_up" {
+  name                   = "${var.resource_name_prefix}-asg-scale_up"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+}
+
+resource "aws_autoscaling_policy" "scale_down" {
+  name                   = "${var.resource_name_prefix}-asg-scale_down"
+  scaling_adjustment     = -1  
+  adjustment_type        = "ChangeInCapacity"
+  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+}
+
+# cloud watch
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name           = "${var.resource_name_prefix}-cloud_watch-high"
+  comparison_operator  = "GreaterThanThreshold"
+  evaluation_periods   = "2"
+  metric_name          = "CPUUtilization"
+  namespace            = "AWS/EC2"
+  period               = "60"
+  statistic            = "Average"
+  threshold            = "70"       # CPU 사용률 70% 이상
+  alarm_actions        = [aws_autoscaling_policy.scale_up.arn]
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_asg.name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name           = "${var.resource_name_prefix}-cloud_watch-low"
+  comparison_operator  = "LessThanThreshold"
+  evaluation_periods   = "2"
+  metric_name          = "CPUUtilization"
+  namespace            = "AWS/EC2"
+  period               = "60"
+  statistic            = "Average"
+  threshold            = "30"       # CPU 사용률 30% 이하
+  alarm_actions        = [aws_autoscaling_policy.scale_down.arn]
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_asg.name
+  }
+}
